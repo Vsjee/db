@@ -445,3 +445,130 @@ BEGIN
 END;
 @
 DELIMITER ;
+
+INSERT INTO Producto (idProducto, dniCif, nombreProducto, imagenProducto, precio, descripcion, impresion, acabado, tipoPapel, tamanoProducto)
+VALUES (15, '1111111111', 'Mobil', 'imagen.jpg', 1023000, 'Iphone mobile', 'Impresión 1', 'metalizado', 'rugoso', 'pequeño');
+
+-- procedimientos almacenados
+
+-- inserta cliente
+DELIMITER @
+CREATE PROCEDURE InsertarCliente(
+    IN p_dniCif VARCHAR(10),
+    IN p_nombreCL VARCHAR(20),
+    IN p_apellidosCL VARCHAR(30),
+    IN p_direccionCL VARCHAR(50),
+    IN p_emailCL VARCHAR(40),
+    IN p_passCL BLOB,
+    IN p_imagenCL VARCHAR(100),
+    IN p_cpCL VARCHAR(100),
+    IN p_localidad VARCHAR(20),
+    IN p_telefonoCI INT
+)
+BEGIN
+    INSERT INTO Cliente (dniCif, nombreCL, apellidosCL, direccionCL, emailCL, passCL, imagenCL, cpCL, localidad, telefonoCI)
+    VALUES (p_dniCif, p_nombreCL, p_apellidosCL, p_direccionCL, p_emailCL, p_passCL, p_imagenCL, p_cpCL, p_localidad, p_telefonoCI);
+END;
+@
+DELIMITER ;
+
+
+-- inserta factura
+DELIMITER @
+CREATE PROCEDURE InsertarFactura(
+    IN p_nFactura INT,
+    IN p_dniCif VARCHAR(10),
+    IN p_pago INT,
+    IN p_importe INT,
+    IN p_envio VARCHAR(20),
+    IN p_fecha DATE
+)
+BEGIN
+    INSERT INTO Factura (nFactura, dniCif, pago, importe, envio, fecha)
+    VALUES (p_nFactura, p_dniCif, p_pago, p_importe, p_envio, p_fecha);
+END 
+@
+DELIMITER ;
+
+-- inserta producto
+DELIMITER @
+CREATE PROCEDURE InsertarProducto(
+    IN p_idProducto INT,
+    IN p_dniCif VARCHAR(10),
+    IN p_nombreProducto VARCHAR(20),
+    IN p_imagenProducto VARCHAR(100),
+    IN p_precio INT,
+    IN p_descripcion VARCHAR(200),
+    IN p_impresion VARCHAR(100),
+    IN p_acabado VARCHAR(20),
+    IN p_tipoPapel VARCHAR(20),
+    IN p_tamanoProducto VARCHAR(20)
+)
+BEGIN
+    INSERT INTO Producto (idProducto, dniCif, nombreProducto, imagenProducto, precio, descripcion, impresion, acabado, tipoPapel, tamanoProducto)
+    VALUES (p_idProducto, p_dniCif, p_nombreProducto, p_imagenProducto, p_precio, p_descripcion, p_impresion, p_acabado, p_tipoPapel, p_tamanoProducto);
+END 
+@
+DELIMITER ;
+
+-- evita insertar datos duplicados en tabla cliente y producto
+CREATE TABLE Venta (
+	dniCif VARCHAR(10), 
+    idProducto INT, 
+    cantidad INT
+);
+
+DELIMITER @
+CREATE PROCEDURE InsertarVenta(
+    IN p_dniCif VARCHAR(10),
+    IN p_idProducto INT,
+    IN p_cantidad INT
+)
+BEGIN
+    DECLARE v_clienteExist INT DEFAULT 0;
+    DECLARE v_productoExist INT DEFAULT 0;
+    DECLARE v_ventaExist INT DEFAULT 0;
+    
+    -- Verificar si el cliente existe
+    SELECT COUNT(*) INTO v_clienteExist FROM Cliente WHERE dniCif = p_dniCif;
+    
+    -- Verificar si el producto existe
+    SELECT COUNT(*) INTO v_productoExist FROM Producto WHERE idProducto = p_idProducto;
+    
+    -- Verificar si la venta ya existe para la combinación de cliente y producto
+    SELECT COUNT(*) INTO v_ventaExist FROM Venta WHERE dniCif = p_dniCif AND idProducto = p_idProducto;
+    
+    IF v_clienteExist = 1 AND v_productoExist = 1 AND v_ventaExist = 0 THEN
+        INSERT INTO Venta (dniCif, idProducto, cantidad)
+        VALUES (p_dniCif, p_idProducto, p_cantidad);
+    END IF;
+END @
+DELIMITER ;
+
+-- funciones de almacenamiento
+
+DELIMITER @
+CREATE FUNCTION CalcularTotalVentasCliente(p_dniCif VARCHAR(10))
+RETURNS INT
+BEGIN
+    DECLARE v_totalVentas INT;
+
+    SELECT SUM(importe) INTO v_totalVentas FROM Factura WHERE dniCif = p_dniCif;
+
+    RETURN v_totalVentas;
+END;
+@
+DELIMITER ;
+
+DELIMITER @
+CREATE FUNCTION ObtenerNombreCompletoEmpleado(p_dniEmpleado VARCHAR(10))
+RETURNS VARCHAR(50)
+BEGIN
+    DECLARE v_nombreCompleto VARCHAR(50);
+
+    SELECT CONCAT(nombreEmp, ' ', apellidoEmp) INTO v_nombreCompleto FROM Empleado WHERE dniEmpleado = p_dniEmpleado;
+
+    RETURN v_nombreCompleto;
+END;
+@
+DELIMITER ;
